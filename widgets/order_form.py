@@ -2,8 +2,8 @@ from PyQt5.QtWidgets import (
     QDialog, QFormLayout, QComboBox,
     QDialogButtonBox, QVBoxLayout, QLabel
 )
+from PyQt5.QtGui import QFont
 from database import Client, Tour
-
 
 class OrderForm(QDialog):
     def __init__(self, session, parent=None):
@@ -11,12 +11,16 @@ class OrderForm(QDialog):
         self.session = session
         self.setWindowTitle("Новый заказ")
         self.setFixedSize(500, 250)
+        self.setStyleSheet("""
+            background: #ffffff;
+            color: #333333;
+        """)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
         title = QLabel("Новый заказ")
-        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #2c3e50;")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #3498db;")
 
         form = QFormLayout()
         self.client_combo = QComboBox()
@@ -27,7 +31,7 @@ class OrderForm(QDialog):
         for client in self.session.query(Client).all():
             self.client_combo.addItem(client.name, client.id)
         for tour in self.session.query(Tour).all():
-            self.tour_combo.addItem(f"{tour.destination} ({tour.start_date})", tour.id)
+            self.tour_combo.addItem(f"{tour.destination} ({tour.start_date.strftime('%d.%m.%Y')})", tour.id)
 
         form.addRow("Клиент:", self.client_combo)
         form.addRow("Тур:", self.tour_combo)

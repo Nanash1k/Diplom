@@ -4,18 +4,21 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QDate
 
-
 class TourForm(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Новый тур")
         self.setFixedSize(500, 350)
+        self.setStyleSheet("""
+            background: #ffffff;
+            color: #333333;
+        """)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
         title = QLabel("Новый тур")
-        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #2c3e50;")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #3498db;")
 
         form = QFormLayout()
         self.destination_input = QLineEdit()
