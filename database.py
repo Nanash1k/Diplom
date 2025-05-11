@@ -48,4 +48,3 @@ class Database:
 
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
-        # Удален вызов _seed_initial_data()

@@ -10,8 +10,8 @@ class ClientForm(QDialog):
         self.setWindowTitle("Новый клиент")
         self.setFixedSize(500, 300)
         self.setStyleSheet("""
-            background: #404040;
-            color: #ffffff;
+            background: #ffffff;
+            color: #333333;
         """)
         self.init_ui()
 
@@ -26,11 +26,10 @@ class ClientForm(QDialog):
         self.phone_input.setInputMask("+7 (999) 999-99-99;_")
         self.email_input = QLineEdit()
 
-        # Стили для полей ввода
         input_style = """
-            background: #505050;
-            color: #ffffff;
-            border: 1px solid #555555;
+            background: #ffffff;
+            color: #333333;
+            border: 1px solid #dddddd;
             padding: 5px;
         """
         self.name_input.setStyleSheet(input_style)
@@ -44,13 +43,13 @@ class ClientForm(QDialog):
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.setStyleSheet("""
             QPushButton {
-                background: #505050;
+                background: #3498db;
                 color: #ffffff;
                 min-width: 80px;
                 padding: 5px;
             }
             QPushButton:hover {
-                background: #606060;
+                background: #2980b9;
             }
         """)
         buttons.accepted.connect(self.accept)

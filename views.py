@@ -18,15 +18,15 @@ class AnimatedButton(QPushButton):
         self.setMinimumSize(150, 50)
         self.setStyleSheet("""
             QPushButton {
-                background: #404040;
+                background: #3498db;
                 color: #ffffff;
                 border-radius: 8px;
                 font-size: 14px;
                 padding: 10px;
-                border: 1px solid #555555;
+                border: 1px solid #2980b9;
             }
             QPushButton:hover {
-                background: #505050;
+                background: #2980b9;
             }
         """)
 
@@ -43,19 +43,19 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1400, 900)
         self.setStyleSheet("""
             QMainWindow { 
-                background: #2d2d2d;
+                background: #ffffff;
                 margin: 0;
                 padding: 0;
             }
             QTableView { 
-                background: #404040; 
-                color: #ffffff;
-                gridline-color: #555555;
+                background: #ffffff; 
+                color: #333333;
+                gridline-color: #e0e0e0;
                 font-size: 14px;
-                border: 1px solid #555555;
+                border: 1px solid #dddddd;
             }
             QHeaderView::section { 
-                background: #505050; 
+                background: #3498db; 
                 color: #ffffff; 
                 padding: 15px;
                 font-size: 14px;
@@ -65,21 +65,21 @@ class MainWindow(QMainWindow):
                 border: 0; 
                 margin: 0;
                 padding: 0;
-                background: #404040;
+                background: #ffffff;
             }
             QTabBar::tab {
-                background: #353535;
-                color: #aaaaaa;
+                background: #f8f9fa;
+                color: #666666;
                 padding: 10px 25px;
-                border: 1px solid #555555;
+                border: 1px solid #dee2e6;
                 border-top-left-radius: 5px;
                 border-top-right-radius: 5px;
                 margin-right: 2px;
             }
             QTabBar::tab:selected { 
-                background: #505050; 
+                background: #3498db; 
                 color: #ffffff;
-                border-bottom-color: #505050;
+                border-bottom-color: #3498db;
             }
         """)
 
@@ -87,6 +87,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout()
         main_widget.setLayout(layout)
+        layout.setContentsMargins(10, 10, 10, 10)
 
         # Панель инструментов
         toolbar = QToolBar()
@@ -127,7 +128,6 @@ class MainWindow(QMainWindow):
         vertical_header = table.verticalHeader()
         vertical_header.setVisible(True)
         vertical_header.setDefaultSectionSize(40)
-        vertical_header.setFixedWidth(50)
         vertical_header.setStyleSheet("""
             QHeaderView::section { 
                 background: #3498db; 
@@ -157,6 +157,7 @@ class MainWindow(QMainWindow):
         chart.setTitle("Распределение заказов")
         chart.setAnimationOptions(QChart.SeriesAnimations)
         chart.setBackgroundBrush(QColor("#ffffff"))
+        chart.setTitleBrush(QColor("#333333"))
 
         chart_view = QChartView(chart)
         chart_view.setRenderHint(QPainter.Antialiasing)
@@ -165,6 +166,77 @@ class MainWindow(QMainWindow):
         layout.addWidget(chart_view)
         tab.setLayout(layout)
         return tab
+
+    # Методы для работы с данными
+    def open_client_form(self):
+        form = ClientForm(self)
+        if form.exec_():
+            self.session.add(Client(
+                name=form.name_input.text(),
+                phone=form.phone_input.text(),
+                email=form.email_input.text()
+            ))
+            self.session.commit()
+            self.load_data()
+
+    def open_tour_form(self):
+        form = TourForm(self)
+        if form.exec_():
+            self.session.add(Tour(
+                destination=form.destination_input.text(),
+                start_date=form.date_input.date().toPyDate(),
+                duration=form.duration_input.value(),
+                price=form.price_input.value()
+            ))
+            self.session.commit()
+            self.load_data()
+
+    def open_order_form(self):
+        form = OrderForm(self.session, self)
+        if form.exec_():
+            self.load_data()
+
+    def delete_selected(self):
+        current_tab = self.tabs.currentIndex()
+        table = None
+        model_class = None
+
+        if current_tab == 0:  # Клиенты
+            table = self.client_table
+            model_class = Client
+        elif current_tab == 1:  # Туры
+            table = self.tour_table
+            model_class = Tour
+        elif current_tab == 2:  # Заказы
+            table = self.order_table
+            model_class = Order
+
+        if table and model_class:
+            selected = table.selectionModel().selectedRows()
+            if not selected:
+                QMessageBox.warning(self, "Ошибка", "Выберите запись для удаления")
+                return
+
+            reply = QMessageBox.question(
+                self,
+                "Подтверждение",
+                "Удалить выбранные записи?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+
+            if reply == QMessageBox.Yes:
+                try:
+                    for index in reversed(selected):
+                        row = index.row()
+                        item_id = table.model().index(row, 0).data(Qt.UserRole)
+                        record = self.session.query(model_class).get(item_id)
+                        if record:
+                            self.session.delete(record)
+                    self.session.commit()
+                    self.load_data()
+                except Exception as e:
+                    self.session.rollback()
+                    QMessageBox.critical(self, "Ошибка", f"Ошибка удаления: {str(e)}")
 
     def load_data(self):
         # Клиенты
@@ -200,73 +272,3 @@ class MainWindow(QMainWindow):
                 QStandardItem(order.status)
             ])
             model.setData(model.index(i, 0), order.id, Qt.UserRole)
-
-    def delete_selected(self):
-        current_tab = self.tabs.currentIndex()
-        table = None
-        model_class = None
-
-        if current_tab == 0:
-            table = self.client_table
-            model_class = Client
-        elif current_tab == 1:
-            table = self.tour_table
-            model_class = Tour
-        elif current_tab == 2:
-            table = self.order_table
-            model_class = Order
-
-        if table and model_class:
-            selected = table.selectionModel().selectedRows()
-            if not selected:
-                QMessageBox.warning(self, "Ошибка", "Выберите запись для удаления")
-                return
-
-            reply = QMessageBox.question(
-                self,
-                "Подтверждение",
-                "Удалить выбранные записи?",
-                QMessageBox.Yes | QMessageBox.No
-            )
-
-            if reply == QMessageBox.Yes:
-                try:
-                    for index in reversed(selected):
-                        row = index.row()
-                        item_id = table.model().index(row, 0).data(Qt.UserRole)
-                        record = self.session.query(model_class).get(item_id)
-                        if record:
-                            self.session.delete(record)
-                    self.session.commit()
-                    self.load_data()
-                except Exception as e:
-                    self.session.rollback()
-                    QMessageBox.critical(self, "Ошибка", f"Ошибка удаления: {str(e)}")
-
-    def open_client_form(self):
-        form = ClientForm(self)
-        if form.exec_():
-            self.session.add(Client(
-                name=form.name_input.text(),
-                phone=form.phone_input.text(),
-                email=form.email_input.text()
-            ))
-            self.session.commit()
-            self.load_data()
-
-    def open_tour_form(self):
-        form = TourForm(self)
-        if form.exec_():
-            self.session.add(Tour(
-                destination=form.destination_input.text(),
-                start_date=form.date_input.date().toPyDate(),
-                duration=form.duration_input.value(),
-                price=form.price_input.value()
-            ))
-            self.session.commit()
-            self.load_data()
-
-    def open_order_form(self):
-        form = OrderForm(self.session, self)
-        if form.exec_():
-            self.load_data()
