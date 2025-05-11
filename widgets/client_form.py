@@ -18,7 +18,7 @@ class ClientForm(QDialog):
     def init_ui(self):
         layout = QVBoxLayout()
         title = QLabel("Новый клиент")
-        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #3498db;")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #2196F3;")
 
         form = QFormLayout()
         self.name_input = QLineEdit()
@@ -29,7 +29,7 @@ class ClientForm(QDialog):
         input_style = """
             background: #ffffff;
             color: #333333;
-            border: 1px solid #dddddd;
+            border: 1px solid #BBDEFB;
             padding: 5px;
         """
         self.name_input.setStyleSheet(input_style)
@@ -43,13 +43,14 @@ class ClientForm(QDialog):
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.setStyleSheet("""
             QPushButton {
-                background: #3498db;
+                background: #2196F3;
                 color: #ffffff;
                 min-width: 80px;
                 padding: 5px;
+                border-radius: 4px;
             }
             QPushButton:hover {
-                background: #2980b9;
+                background: #1976D2;
             }
         """)
         buttons.accepted.connect(self.accept)

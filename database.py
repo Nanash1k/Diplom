@@ -23,6 +23,8 @@ class Tour(Base):
     duration = Column(Integer)
     price = Column(Integer)
     operator = Column(String(100))
+    adults = Column(Integer, default=1)
+    children = Column(Integer, default=0)
     orders = relationship("Order", back_populates="tour")
 
 class Order(Base):
