@@ -12,7 +12,6 @@ from widgets.client_form import ClientForm
 from widgets.tour_form import TourForm
 from widgets.order_form import OrderForm
 from sqlalchemy import func
-from random import randint
 
 
 class AnimatedButton(QPushButton):
@@ -224,7 +223,6 @@ class MainWindow(QMainWindow):
         self.chart_view.setRenderHint(QPainter.Antialiasing)
 
     def load_data(self):
-        # Клиенты
         model = self.client_table.model()
         model.setRowCount(0)
         for i, client in enumerate(self.session.query(Client).all()):
@@ -236,7 +234,6 @@ class MainWindow(QMainWindow):
             ])
             model.setData(model.index(i, 0), client.id, Qt.UserRole)
 
-        # Туры
         model = self.tour_table.model()
         model.setRowCount(0)
         for i, tour in enumerate(self.session.query(Tour).all()):
@@ -250,7 +247,6 @@ class MainWindow(QMainWindow):
             ])
             model.setData(model.index(i, 0), tour.id, Qt.UserRole)
 
-        # Заказы
         model = self.order_table.model()
         model.setRowCount(0)
         for i, order in enumerate(self.session.query(Order).join(Client).join(Tour).all()):
@@ -310,31 +306,82 @@ class MainWindow(QMainWindow):
         current_tab = self.tabs.currentIndex()
         table = None
         model_class = None
+        entity_name = ""
 
-        if current_tab == 0:  # Клиенты
+        if current_tab == 0:
             table = self.client_table
             model_class = Client
-        elif current_tab == 1:  # Туры
+            entity_name = "клиента"
+        elif current_tab == 1:
             table = self.tour_table
             model_class = Tour
-        elif current_tab == 2:  # Заказы
+            entity_name = "тур"
+        elif current_tab == 2:
             table = self.order_table
             model_class = Order
+            entity_name = "заказ"
 
         if table and model_class:
             selected = table.selectionModel().selectedRows()
             if not selected:
-                QMessageBox.warning(self, "Ошибка", "Выберите запись для удаления")
+                msg = QMessageBox()
+                msg.setStyleSheet("""
+                    QMessageBox {
+                        background: #404040;
+                        color: #fff;
+                    }
+                    QLabel {
+                        color: #fff;
+                        font: 14px;
+                    }
+                    QPushButton {
+                        background: #6a1b9a;
+                        color: white;
+                        min-width: 80px;
+                        padding: 8px;
+                        border-radius: 4px;
+                    }
+                    QPushButton:hover {
+                        background: #7b1fa2;
+                    }
+                """)
+                msg.setWindowTitle("Ошибка")
+                msg.setText("Выберите запись для удаления")
+                msg.setIcon(QMessageBox.Warning)
+                msg.exec_()
                 return
 
-            reply = QMessageBox.question(
-                self,
-                "Подтверждение",
-                "Удалить выбранные записи?",
-                QMessageBox.Yes | QMessageBox.No
+            count = len(selected)
+            message = QMessageBox()
+            message.setStyleSheet("""
+                QMessageBox {
+                    background: #404040;
+                    color: #fff;
+                }
+                QLabel {
+                    color: #fff;
+                    font: 14px;
+                }
+                QPushButton {
+                    background: #6a1b9a;
+                    color: white;
+                    min-width: 80px;
+                    padding: 8px;
+                    border-radius: 4px;
+                }
+                QPushButton:hover {
+                    background: #7b1fa2;
+                }
+            """)
+            message.setWindowTitle("Подтверждение удаления")
+            message.setText(
+                f"Вы действительно хотите удалить {count} {self.declension(entity_name, count)}?\n\n"
+                "* Это действие нельзя будет отменить!"
             )
+            message.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            message.setDefaultButton(QMessageBox.No)
 
-            if reply == QMessageBox.Yes:
+            if message.exec_() == QMessageBox.Yes:
                 try:
                     for index in reversed(selected):
                         row = index.row()
@@ -346,4 +393,34 @@ class MainWindow(QMainWindow):
                     self.load_data()
                 except Exception as e:
                     self.session.rollback()
-                    QMessageBox.critical(self, "Ошибка", f"Ошибка удаления: {str(e)}")
+                    error_box = QMessageBox()
+                    error_box.setStyleSheet("""
+                        QMessageBox {
+                            background: #404040;
+                            color: #fff;
+                        }
+                        QLabel {
+                            color: #ff4444;
+                            font: bold 14px;
+                        }
+                        QPushButton {
+                            background: #6a1b9a;
+                            color: white;
+                            min-width: 80px;
+                            padding: 8px;
+                            border-radius: 4px;
+                        }
+                    """)
+                    error_box.critical(self, "Ошибка", f"Ошибка удаления: {str(e)}")
+
+    def declension(self, word, number):
+        variants = {
+            "клиента": ["клиент", "клиента", "клиентов"],
+            "тур": ["тур", "тура", "туров"],
+            "заказ": ["заказ", "заказа", "заказов"]
+        }
+        cases = [2, 0, 1, 1, 1, 2]
+        if 4 < number % 100 < 20:
+            return variants[word][2]
+        else:
+            return variants[word][cases[min(number % 10, 5)]]

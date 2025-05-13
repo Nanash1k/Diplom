@@ -62,7 +62,7 @@ class TourForm(QDialog):
         self.duration_input = QSpinBox()
         self.duration_input.setRange(1, 30)
         self.price_input = QSpinBox()
-        self.price_input.setRange(10000, 1000000)
+        self.price_input.setRange(0, 100000000)
         self.price_input.setPrefix("₽ ")
         self.adults_input = QSpinBox()
         self.adults_input.setRange(1, 100)
