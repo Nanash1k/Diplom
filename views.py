@@ -196,17 +196,21 @@ class MainWindow(QMainWindow):
 
     def update_stats(self):
         series = QPieSeries()
+        colors = [
+            QColor("#9C27B0"), QColor("#2196F3"), QColor("#4CAF50"),
+            QColor("#FF9800"), QColor("#E91E63"), QColor("#00BCD4")
+        ]
 
         tours = self.session.query(
             Tour.destination,
             func.count(Order.id).label('order_count')
         ).outerjoin(Order).group_by(Tour.id).all()
 
-        for destination, count in tours:
+        for i, (destination, count) in enumerate(tours):
             if count == 0:
                 continue
             slice_ = QPieSlice(f"{destination} ({count})", count)
-            slice_.setColor(QColor(randint(100, 255), randint(100, 255), randint(100, 255)))
+            slice_.setColor(colors[i % len(colors)])
             series.append(slice_)
 
         chart = QChart()

@@ -1,20 +1,25 @@
 from PyQt5.QtWidgets import (
     QDialog, QFormLayout, QLineEdit,
-    QDialogButtonBox, QVBoxLayout, QLabel
+    QDialogButtonBox, QVBoxLayout, QLabel, QSizePolicy
 )
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import Qt
-
 
 class ClientForm(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Новый клиент")
-        self.setFixedSize(600, 400)
+        self.setMinimumSize(600, 400)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setStyleSheet("""
-            background: #404040;
-            color: #ddd;
-            border-radius: 10px;
+            QDialog {
+                background: #404040;
+                color: #ddd;
+                border-radius: 10px;
+            }
+            QLayout {
+                margin: 15px;
+            }
         """)
         self.init_ui()
 

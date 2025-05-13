@@ -1,20 +1,25 @@
 from PyQt5.QtWidgets import (
     QDialog, QFormLayout, QLineEdit, QDateEdit,
-    QSpinBox, QDialogButtonBox, QVBoxLayout, QLabel
+    QSpinBox, QDialogButtonBox, QVBoxLayout, QLabel, QSizePolicy
 )
 from PyQt5.QtCore import QDate
 from PyQt5.QtGui import QColor
-
 
 class TourForm(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Новый тур")
-        self.setFixedSize(600, 500)
+        self.setMinimumSize(600, 500)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setStyleSheet("""
-            background: #404040;
-            color: #ddd;
-            border-radius: 10px;
+            QDialog {
+                background: #404040;
+                color: #ddd;
+                border-radius: 10px;
+            }
+            QLayout {
+                margin: 15px;
+            }
         """)
         self.init_ui()
 

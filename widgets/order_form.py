@@ -1,21 +1,26 @@
 from PyQt5.QtWidgets import (
     QDialog, QFormLayout, QComboBox,
-    QDialogButtonBox, QVBoxLayout, QLabel
+    QDialogButtonBox, QVBoxLayout, QLabel, QSizePolicy
 )
 from PyQt5.QtGui import QColor
 from database import Client, Tour
-
 
 class OrderForm(QDialog):
     def __init__(self, session, parent=None):
         super().__init__(parent)
         self.session = session
         self.setWindowTitle("Новый заказ")
-        self.setFixedSize(600, 300)
+        self.setMinimumSize(600, 300)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setStyleSheet("""
-            background: #404040;
-            color: #ddd;
-            border-radius: 10px;
+            QDialog {
+                background: #404040;
+                color: #ddd;
+                border-radius: 10px;
+            }
+            QLayout {
+                margin: 15px;
+            }
         """)
         self.init_ui()
 
