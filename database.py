@@ -5,6 +5,7 @@ from datetime import datetime
 
 Base = declarative_base()
 
+
 class Client(Base):
     __tablename__ = 'clients'
     id = Column(Integer, primary_key=True)
@@ -14,6 +15,7 @@ class Client(Base):
     passport = Column(String(50))
     notes = Column(String(500))
     orders = relationship("Order", back_populates="client")
+
 
 class Tour(Base):
     __tablename__ = 'tours'
@@ -27,6 +29,7 @@ class Tour(Base):
     children = Column(Integer, default=0)
     orders = relationship("Order", back_populates="tour")
 
+
 class Order(Base):
     __tablename__ = 'orders'
     id = Column(Integer, primary_key=True)
@@ -35,6 +38,7 @@ class Order(Base):
     status = Column(String(20), default='В работе')
     client = relationship("Client", back_populates="orders")
     tour = relationship("Tour", back_populates="orders")
+
 
 class Database:
     def __init__(self):
@@ -45,6 +49,8 @@ class Database:
             os.makedirs(db_dir)
 
         db_path = os.path.join(db_dir, db_file)
+
+        # Инициализация SQLite
         self.engine = create_engine(f'sqlite:///{db_path}')
         Base.metadata.create_all(self.engine)
 

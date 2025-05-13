@@ -1,10 +1,11 @@
 from PyQt5.QtWidgets import (
     QMainWindow, QTabWidget, QWidget, QVBoxLayout,
     QTableView, QLabel, QPushButton, QHBoxLayout,
-    QHeaderView, QAbstractItemView, QToolBar, QAction, QMessageBox
+    QHeaderView, QAbstractItemView, QToolBar, QAction,
+    QMessageBox, QSizePolicy
 )
 from PyQt5.QtChart import QChart, QChartView, QPieSeries, QPieSlice
-from PyQt5.QtCore import Qt, QPropertyAnimation
+from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QPainter, QStandardItemModel, QStandardItem, QColor, QFont
 from database import Client, Tour, Order
 from widgets.client_form import ClientForm
@@ -17,20 +18,25 @@ from random import randint
 class AnimatedButton(QPushButton):
     def __init__(self, text, parent=None):
         super().__init__(text, parent)
-        self.setMinimumSize(150, 50)
-        self.setStyleSheet("""
-            QPushButton {
-                background: #3498db;
-                color: #ffffff;
-                border-radius: 8px;
-                font-size: 14px;
-                padding: 10px;
-                border: 1px solid #2980b9;
-            }
-            QPushButton:hover {
-                background: #2980b9;
-            }
-        """)
+        self.setMinimumSize(160, 48)
+        self.setCursor(Qt.PointingHandCursor)
+        self._animation = QPropertyAnimation(self, b"geometry")
+        self._animation.setDuration(200)
+        self._animation.setEasingCurve(QEasingCurve.OutQuad)
+
+    def enterEvent(self, event):
+        self._animation.stop()
+        self._animation.setStartValue(self.geometry())
+        self._animation.setEndValue(self.geometry().adjusted(-2, -2, 2, 2))
+        self._animation.start()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self._animation.stop()
+        self._animation.setStartValue(self.geometry())
+        self._animation.setEndValue(self.geometry().adjusted(2, 2, -2, -2))
+        self._animation.start()
+        super().leaveEvent(event)
 
 
 class MainWindow(QMainWindow):
@@ -41,47 +47,39 @@ class MainWindow(QMainWindow):
         self.load_data()
 
     def init_ui(self):
-        self.setWindowTitle("ТурМенеджер")
+        self.setWindowTitle("ТурМенеджер PRO")
         self.setMinimumSize(1400, 900)
+
         self.setStyleSheet("""
-            QMainWindow { 
-                background: #ffffff;
-                margin: 0;
-                padding: 0;
+            QMainWindow {
+                background: #2d2d2d;
             }
-            QTableView { 
-                background: #ffffff; 
-                color: #333333;
-                gridline-color: #e0e0e0;
-                font-size: 14px;
-                border: 1px solid #dddddd;
-            }
-            QHeaderView::section { 
-                background: #3498db; 
-                color: #ffffff; 
-                padding: 15px;
-                font-size: 14px;
+            QTabWidget::pane {
                 border: 0;
-            }
-            QTabWidget::pane { 
-                border: 0; 
-                margin: 0;
-                padding: 0;
-                background: #ffffff;
+                background: #363636;
+                border-radius: 8px;
             }
             QTabBar::tab {
-                background: #f8f9fa;
-                color: #666666;
-                padding: 10px 25px;
-                border: 1px solid #dee2e6;
-                border-top-left-radius: 5px;
-                border-top-right-radius: 5px;
-                margin-right: 2px;
+                background: #444;
+                color: #ddd;
+                min-width: 120px;
+                padding: 12px;
+                border: 0;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                margin-right: 4px;
+                font-size: 14px;
             }
-            QTabBar::tab:selected { 
-                background: #3498db; 
-                color: #ffffff;
-                border-bottom-color: #3498db;
+            QTabBar::tab:selected {
+                background: #6a1b9a;
+                color: white;
+            }
+            QToolBar {
+                background: #404040;
+                border-radius: 8px;
+                margin: 8px;
+                padding: 8px;
+                border: 1px solid #555;
             }
         """)
 
@@ -89,65 +87,107 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout()
         main_widget.setLayout(layout)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(15)
 
-        # Панель инструментов
         toolbar = QToolBar()
+        toolbar.setStyleSheet("""
+            QToolButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #7b1fa2, stop:1 #6a1b9a);
+                color: white;
+                border-radius: 6px;
+                padding: 10px;
+                margin: 2px;
+            }
+            QToolButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #8e24aa, stop:1 #7b1fa2);
+            }
+        """)
         buttons = [
-            ("➕ Клиент", self.open_client_form),
-            ("✈️ Тур", self.open_tour_form),
-            ("📦 Заказ", self.open_order_form),
-            ("🗑️ Удалить", self.delete_selected),
-            ("🔄 Обновить", self.load_data)
+            ("➕ Добавить клиента", self.open_client_form),
+            ("✈️ Создать тур", self.open_tour_form),
+            ("📦 Новый заказ", self.open_order_form),
+            ("🗑️ Удалить выбранное", self.delete_selected),
+            ("🔄 Обновить данные", self.load_data)
         ]
         for text, callback in buttons:
             btn = AnimatedButton(text)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background: transparent;
+                    color: white;
+                    font-weight: 500;
+                    border: 2px solid #7b1fa2;
+                    border-radius: 6px;
+                }
+                QPushButton:hover {
+                    background: #7b1fa255;
+                }
+            """)
             btn.clicked.connect(callback)
             toolbar.addWidget(btn)
         layout.addWidget(toolbar)
 
-        # Вкладки
         self.tabs = QTabWidget()
+        self.tabs.setTabPosition(QTabWidget.North)
         self.setup_tabs()
         layout.addWidget(self.tabs)
 
     def setup_tabs(self):
-        self.client_table = self.create_table(["Имя", "Телефон", "Email"])
-        self.tour_table = self.create_table(["Направление", "Дата", "Цена", "Оператор"])
+        self.client_table = self.create_table(["Имя", "Телефон", "Email", "Паспорт"])
+        self.tour_table = self.create_table([
+            "Направление",
+            "Дата",
+            "Цена",
+            "Оператор",
+            "Взрослые",
+            "Дети"
+        ])
         self.order_table = self.create_table(["Клиент", "Тур", "Статус"])
         self.stats_tab = self.create_stats_tab()
 
-        self.tabs.addTab(self.client_table, "Клиенты")
-        self.tabs.addTab(self.tour_table, "Туры")
-        self.tabs.addTab(self.order_table, "Заказы")
-        self.tabs.addTab(self.stats_tab, "📊 Статистика")
+        self.tabs.addTab(self.client_table, "👤 Клиенты")
+        self.tabs.addTab(self.tour_table, "🌍 Туры")
+        self.tabs.addTab(self.order_table, "📦 Заказы")
+        self.tabs.addTab(self.stats_tab, "📊 Аналитика")
 
     def create_table(self, headers):
         table = QTableView()
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        vertical_header = table.verticalHeader()
-        vertical_header.setVisible(True)
-        vertical_header.setDefaultSectionSize(40)
-        vertical_header.setStyleSheet("""
-            QHeaderView::section { 
-                background: #3498db; 
-                color: #ffffff;
+        table.setStyleSheet("""
+            QTableView {
+                background: #404040;
+                color: #ddd;
+                border: 1px solid #555;
+                border-radius: 6px;
+                gridline-color: #555;
+                selection-background-color: #6a1b9a;
+            }
+            QHeaderView::section {
+                background: #6a1b9a;
+                color: white;
+                padding: 10px;
                 border: 0;
+                font-weight: bold;
+            }
+            QTableView::item {
+                padding: 8px;
+                border-bottom: 1px solid #555;
             }
         """)
-
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
         table.setModel(model)
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        table.setStyleSheet("border: 1px solid #dddddd;")
-
+        table.verticalHeader().hide()
         return table
 
     def create_stats_tab(self):
         tab = QWidget()
         self.chart_view = QChartView()
+        self.chart_view.setRenderHint(QPainter.Antialiasing)
         layout = QVBoxLayout()
         layout.addWidget(self.chart_view)
         tab.setLayout(layout)
@@ -174,7 +214,10 @@ class MainWindow(QMainWindow):
         chart.setTitle("Распределение заказов по турам")
         chart.setAnimationOptions(QChart.SeriesAnimations)
         chart.setBackgroundBrush(QColor("#ffffff"))
+        chart.legend().setVisible(True)
+        chart.legend().setAlignment(Qt.AlignBottom)
         self.chart_view.setChart(chart)
+        self.chart_view.setRenderHint(QPainter.Antialiasing)
 
     def load_data(self):
         # Клиенты
@@ -184,7 +227,8 @@ class MainWindow(QMainWindow):
             model.appendRow([
                 QStandardItem(client.name),
                 QStandardItem(client.phone),
-                QStandardItem(client.email or "")
+                QStandardItem(client.email or ""),
+                QStandardItem(client.passport or "")
             ])
             model.setData(model.index(i, 0), client.id, Qt.UserRole)
 
@@ -196,7 +240,9 @@ class MainWindow(QMainWindow):
                 QStandardItem(tour.destination),
                 QStandardItem(tour.start_date.strftime("%d.%m.%Y")),
                 QStandardItem(f"{tour.price} ₽"),
-                QStandardItem(tour.operator or "")
+                QStandardItem(tour.operator or "-"),
+                QStandardItem(str(tour.adults)),
+                QStandardItem(str(tour.children))
             ])
             model.setData(model.index(i, 0), tour.id, Qt.UserRole)
 
@@ -219,7 +265,8 @@ class MainWindow(QMainWindow):
             self.session.add(Client(
                 name=form.name_input.text(),
                 phone=form.phone_input.text(),
-                email=form.email_input.text()
+                email=form.email_input.text(),
+                passport=form.passport_input.text()
             ))
             self.session.commit()
             self.load_data()
@@ -229,9 +276,12 @@ class MainWindow(QMainWindow):
         if form.exec_():
             self.session.add(Tour(
                 destination=form.destination_input.text(),
+                operator=form.operator_input.text(),
                 start_date=form.date_input.date().toPyDate(),
                 duration=form.duration_input.value(),
-                price=form.price_input.value()
+                price=form.price_input.value(),
+                adults=form.adults_input.value(),
+                children=form.children_input.value()
             ))
             self.session.commit()
             self.load_data()
