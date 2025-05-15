@@ -218,10 +218,21 @@ class MainWindow(QMainWindow):
         chart = QChart()
         chart.addSeries(series)
         chart.setTitle("Распределение заказов по турам")
+
+        # Настройка цветов текста
+        chart.setTitleBrush(QBrush(Qt.white))  # Белый цвет заголовка
+        chart.legend().setLabelColor(Qt.white)  # Белый цвет легенды
+
+        # Настройка шрифтов
+        title_font = QFont("Arial Black", 12, QFont.Bold)
+        chart.setTitleFont(title_font)
+        chart.legend().setFont(QFont("Arial Black", 10))
+
         chart.setAnimationOptions(QChart.SeriesAnimations)
         chart.setBackgroundBrush(QBrush(QColor(64, 64, 64)))
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
+
         self.chart_view.setChart(chart)
 
     def load_data(self):
@@ -235,6 +246,7 @@ class MainWindow(QMainWindow):
                 self.create_white_item(client.email or ""),
                 self.create_white_item(client.passport or "")
             ]
+            items[0].setData(client.id, Qt.UserRole)  # Сохраняем ID в первом элементе
             model.appendRow(items)
 
         # Туры
@@ -249,6 +261,7 @@ class MainWindow(QMainWindow):
                 self.create_white_item(str(tour.adults)),
                 self.create_white_item(str(tour.children))
             ]
+            items[0].setData(tour.id, Qt.UserRole)  # Сохраняем ID в первом элементе
             model.appendRow(items)
 
         # Заказы
@@ -260,6 +273,7 @@ class MainWindow(QMainWindow):
                 self.create_white_item(order.tour.destination),
                 self.create_white_item(order.status)
             ]
+            items[0].setData(order.id, Qt.UserRole)  # Сохраняем ID в первом элементе
             model.appendRow(items)
         self.update_stats()
 
@@ -333,94 +347,60 @@ class MainWindow(QMainWindow):
         if table and model_class:
             selected = table.selectionModel().selectedRows()
             if not selected:
-                msg = QMessageBox()
-                msg.setStyleSheet("""
-                    QMessageBox {
-                        background: #404040;
-                        color: #fff;
-                    }
-                    QLabel {
-                        color: #fff;
-                        font: 14px;
-                    }
-                    QPushButton {
-                        background: #6a1b9a;
-                        color: white;
-                        min-width: 80px;
-                        padding: 8px;
-                        border-radius: 4px;
-                    }
-                    QPushButton:hover {
-                        background: #7b1fa2;
-                    }
-                """)
-                msg.setWindowTitle("Ошибка")
-                msg.setText("Выберите запись для удаления")
-                msg.setIcon(QMessageBox.Warning)
-                msg.exec_()
+                self.show_message("Ошибка", "Выберите запись для удаления", QMessageBox.Warning)
                 return
 
             count = len(selected)
-            message = QMessageBox()
-            message.setStyleSheet("""
-                QMessageBox {
-                    background: #404040;
-                    color: #fff;
-                }
-                QLabel {
-                    color: #fff;
-                    font: 14px;
-                }
-                QPushButton {
-                    background: #6a1b9a;
-                    color: white;
-                    min-width: 80px;
-                    padding: 8px;
-                    border-radius: 4px;
-                }
-                QPushButton:hover {
-                    background: #7b1fa2;
-                }
-            """)
-            message.setWindowTitle("Подтверждение удаления")
-            message.setText(
-                f"Вы действительно хотите удалить {count} {self.declension(entity_name, count)}?\n\n"
-                "* Это действие нельзя будет отменить!"
+            answer = self.show_message(
+                "Подтверждение удаления",
+                f"Вы действительно хотите удалить {count} {self.declension(entity_name, count)}?\n\n* Это действие нельзя будет отменить!",
+                QMessageBox.Question,
+                buttons=QMessageBox.Yes | QMessageBox.No
             )
-            message.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-            message.setDefaultButton(QMessageBox.No)
 
-            if message.exec_() == QMessageBox.Yes:
+            if answer == QMessageBox.Yes:
                 try:
                     for index in reversed(selected):
                         row = index.row()
-                        item_id = table.model().index(row, 0).data(Qt.UserRole)
-                        record = self.session.query(model_class).get(item_id)
-                        if record:
-                            self.session.delete(record)
+                        # Получаем ID из первого столбца выбранной строки
+                        item_id = table.model().item(row, 0).data(Qt.UserRole)
+                        if item_id is not None:
+                            record = self.session.query(model_class).get(item_id)
+                            if record:
+                                self.session.delete(record)
                     self.session.commit()
                     self.load_data()
                 except Exception as e:
                     self.session.rollback()
-                    error_box = QMessageBox()
-                    error_box.setStyleSheet("""
-                        QMessageBox {
-                            background: #404040;
-                            color: #fff;
-                        }
-                        QLabel {
-                            color: #ff4444;
-                            font: bold 14px;
-                        }
-                        QPushButton {
-                            background: #6a1b9a;
-                            color: white;
-                            min-width: 80px;
-                            padding: 8px;
-                            border-radius: 4px;
-                        }
-                    """)
-                    error_box.critical(self, "Ошибка", f"Ошибка удаления: {str(e)}")
+                    self.show_message("Ошибка", f"Ошибка удаления: {str(e)}", QMessageBox.Critical)
+
+    def show_message(self, title, text, icon, buttons=QMessageBox.Ok):
+        msg = QMessageBox()
+        msg.setStyleSheet("""
+            QMessageBox {
+                background: #404040;
+                color: #fff;
+            }
+            QLabel {
+                color: #fff;
+                font: 14px;
+            }
+            QPushButton {
+                background: #6a1b9a;
+                color: white;
+                min-width: 80px;
+                padding: 8px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background: #7b1fa2;
+            }
+        """)
+        msg.setWindowTitle(title)
+        msg.setText(text)
+        msg.setIcon(icon)
+        msg.setStandardButtons(buttons)
+        return msg.exec_()
 
     def declension(self, word, number):
         variants = {
