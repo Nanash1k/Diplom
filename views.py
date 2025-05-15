@@ -65,7 +65,7 @@ class MainWindow(QMainWindow):
         self.load_data()
 
     def init_ui(self):
-        self.setWindowTitle("ТурМенеджер PRO")
+        self.setWindowTitle("ТурМенеджер")
         self.setMinimumSize(1400, 900)
         self.setup_style()
         self.setup_toolbar()
