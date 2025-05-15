@@ -2,11 +2,12 @@ from PyQt5.QtWidgets import (
     QMainWindow, QTabWidget, QWidget, QVBoxLayout,
     QTableView, QLabel, QPushButton, QHBoxLayout,
     QHeaderView, QAbstractItemView, QToolBar, QAction,
-    QMessageBox, QSizePolicy
+    QMessageBox, QSizePolicy, QStyledItemDelegate, QLineEdit
 )
 from PyQt5.QtChart import QChart, QChartView, QPieSeries, QPieSlice
-from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve
-from PyQt5.QtGui import QPainter, QStandardItemModel, QStandardItem, QColor, QFont
+from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QDate
+from PyQt5.QtGui import (QPainter, QStandardItemModel, QStandardItem,
+                         QColor, QFont, QPalette, QBrush)
 from database import Client, Tour, Order
 from widgets.client_form import ClientForm
 from widgets.tour_form import TourForm
@@ -38,6 +39,24 @@ class AnimatedButton(QPushButton):
         super().leaveEvent(event)
 
 
+class TableDelegate(QStyledItemDelegate):
+    def createEditor(self, parent, option, index):
+        editor = super().createEditor(parent, option, index)
+        if isinstance(editor, QLineEdit):
+            editor.setStyleSheet("""
+                QLineEdit {
+                    background: #404040;
+                    color: white;
+                    border: 2px solid #6a1b9a;
+                    margin: -1px;
+                    padding: 0;
+                }
+            """)
+        return editor
+
+    def updateEditorGeometry(self, editor, option, index):
+        editor.setGeometry(option.rect.adjusted(-2, 0, 2, 0))
+
 class MainWindow(QMainWindow):
     def __init__(self, session):
         super().__init__()
@@ -48,11 +67,13 @@ class MainWindow(QMainWindow):
     def init_ui(self):
         self.setWindowTitle("ТурМенеджер PRO")
         self.setMinimumSize(1400, 900)
+        self.setup_style()
+        self.setup_toolbar()
+        self.setup_tabs()
 
+    def setup_style(self):
         self.setStyleSheet("""
-            QMainWindow {
-                background: #2d2d2d;
-            }
+            QMainWindow { background: #2d2d2d; }
             QTabWidget::pane {
                 border: 0;
                 background: #363636;
@@ -73,15 +94,7 @@ class MainWindow(QMainWindow):
                 background: #6a1b9a;
                 color: white;
             }
-            QToolBar {
-                background: #404040;
-                border-radius: 8px;
-                margin: 8px;
-                padding: 8px;
-                border: 1px solid #555;
-            }
         """)
-
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout()
@@ -89,6 +102,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(15)
 
+    def setup_toolbar(self):
         toolbar = QToolBar()
         toolbar.setStyleSheet("""
             QToolButton {
@@ -121,29 +135,16 @@ class MainWindow(QMainWindow):
                     border: 2px solid #7b1fa2;
                     border-radius: 6px;
                 }
-                QPushButton:hover {
-                    background: #7b1fa255;
-                }
+                QPushButton:hover { background: #7b1fa255; }
             """)
             btn.clicked.connect(callback)
             toolbar.addWidget(btn)
-        layout.addWidget(toolbar)
-
-        self.tabs = QTabWidget()
-        self.tabs.setTabPosition(QTabWidget.North)
-        self.setup_tabs()
-        layout.addWidget(self.tabs)
+        self.centralWidget().layout().addWidget(toolbar)
 
     def setup_tabs(self):
+        self.tabs = QTabWidget()
         self.client_table = self.create_table(["Имя", "Телефон", "Email", "Паспорт"])
-        self.tour_table = self.create_table([
-            "Направление",
-            "Дата",
-            "Цена",
-            "Оператор",
-            "Взрослые",
-            "Дети"
-        ])
+        self.tour_table = self.create_table(["Направление", "Дата", "Цена", "Оператор", "Взрослые", "Дети"])
         self.order_table = self.create_table(["Клиент", "Тур", "Статус"])
         self.stats_tab = self.create_stats_tab()
 
@@ -151,28 +152,31 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.tour_table, "🌍 Туры")
         self.tabs.addTab(self.order_table, "📦 Заказы")
         self.tabs.addTab(self.stats_tab, "📊 Аналитика")
+        self.centralWidget().layout().addWidget(self.tabs)
 
     def create_table(self, headers):
         table = QTableView()
         table.setStyleSheet("""
             QTableView {
                 background: #404040;
-                color: #ddd;
+                color: white;
                 border: 1px solid #555;
-                border-radius: 6px;
                 gridline-color: #555;
                 selection-background-color: #6a1b9a;
+                selection-color: white;
             }
+            QTableView::item {
+                background: #404040;
+                color: white;
+                border: none;
+                padding: 8px;
+            }
+            QTableView::item:selected { background: #6a1b9a; }
             QHeaderView::section {
                 background: #6a1b9a;
                 color: white;
                 padding: 10px;
                 border: 0;
-                font-weight: bold;
-            }
-            QTableView::item {
-                padding: 8px;
-                border-bottom: 1px solid #555;
             }
         """)
         model = QStandardItemModel()
@@ -181,6 +185,8 @@ class MainWindow(QMainWindow):
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         table.setSelectionBehavior(QAbstractItemView.SelectRows)
         table.verticalHeader().hide()
+        table.setEditTriggers(QTableView.DoubleClicked)
+        table.setItemDelegate(TableDelegate())
         return table
 
     def create_stats_tab(self):
@@ -195,19 +201,16 @@ class MainWindow(QMainWindow):
 
     def update_stats(self):
         series = QPieSeries()
-        colors = [
-            QColor("#9C27B0"), QColor("#2196F3"), QColor("#4CAF50"),
-            QColor("#FF9800"), QColor("#E91E63"), QColor("#00BCD4")
-        ]
-
         tours = self.session.query(
             Tour.destination,
             func.count(Order.id).label('order_count')
         ).outerjoin(Order).group_by(Tour.id).all()
 
+        colors = [QColor("#9C27B0"), QColor("#2196F3"), QColor("#4CAF50"),
+                  QColor("#FF9800"), QColor("#E91E63"), QColor("#00BCD4")]
+
         for i, (destination, count) in enumerate(tours):
-            if count == 0:
-                continue
+            if count == 0: continue
             slice_ = QPieSlice(f"{destination} ({count})", count)
             slice_.setColor(colors[i % len(colors)])
             series.append(slice_)
@@ -216,48 +219,54 @@ class MainWindow(QMainWindow):
         chart.addSeries(series)
         chart.setTitle("Распределение заказов по турам")
         chart.setAnimationOptions(QChart.SeriesAnimations)
-        chart.setBackgroundBrush(QColor("#ffffff"))
+        chart.setBackgroundBrush(QBrush(QColor(64, 64, 64)))
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
         self.chart_view.setChart(chart)
-        self.chart_view.setRenderHint(QPainter.Antialiasing)
 
     def load_data(self):
+        # Клиенты
         model = self.client_table.model()
         model.setRowCount(0)
-        for i, client in enumerate(self.session.query(Client).all()):
-            model.appendRow([
-                QStandardItem(client.name),
-                QStandardItem(client.phone),
-                QStandardItem(client.email or ""),
-                QStandardItem(client.passport or "")
-            ])
-            model.setData(model.index(i, 0), client.id, Qt.UserRole)
+        for client in self.session.query(Client).all():
+            items = [
+                self.create_white_item(client.name),
+                self.create_white_item(client.phone),
+                self.create_white_item(client.email or ""),
+                self.create_white_item(client.passport or "")
+            ]
+            model.appendRow(items)
 
+        # Туры
         model = self.tour_table.model()
         model.setRowCount(0)
-        for i, tour in enumerate(self.session.query(Tour).all()):
-            model.appendRow([
-                QStandardItem(tour.destination),
-                QStandardItem(tour.start_date.strftime("%d.%m.%Y")),
-                QStandardItem(f"{tour.price} ₽"),
-                QStandardItem(tour.operator or "-"),
-                QStandardItem(str(tour.adults)),
-                QStandardItem(str(tour.children))
-            ])
-            model.setData(model.index(i, 0), tour.id, Qt.UserRole)
+        for tour in self.session.query(Tour).all():
+            items = [
+                self.create_white_item(tour.destination),
+                self.create_white_item(tour.start_date.strftime("%d.%m.%Y")),
+                self.create_white_item(f"{tour.price} ₽"),
+                self.create_white_item(tour.operator or "-"),
+                self.create_white_item(str(tour.adults)),
+                self.create_white_item(str(tour.children))
+            ]
+            model.appendRow(items)
 
+        # Заказы
         model = self.order_table.model()
         model.setRowCount(0)
-        for i, order in enumerate(self.session.query(Order).join(Client).join(Tour).all()):
-            model.appendRow([
-                QStandardItem(order.client.name),
-                QStandardItem(order.tour.destination),
-                QStandardItem(order.status)
-            ])
-            model.setData(model.index(i, 0), order.id, Qt.UserRole)
-
+        for order in self.session.query(Order).join(Client).join(Tour).all():
+            items = [
+                self.create_white_item(order.client.name),
+                self.create_white_item(order.tour.destination),
+                self.create_white_item(order.status)
+            ]
+            model.appendRow(items)
         self.update_stats()
+
+    def create_white_item(self, text):
+        item = QStandardItem(text)
+        item.setForeground(QColor(255, 255, 255))
+        return item
 
     def open_client_form(self):
         form = ClientForm(self)

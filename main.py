@@ -1,3 +1,4 @@
+# main.py
 import sys
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QFont, QPalette, QColor
@@ -7,9 +8,8 @@ from database import Database
 
 
 def apply_styles(app):
-    app.setFont(QFont("Segoe UI", 10))
+    app.setFont(QFont("Arial Black", 10))
 
-    # Устанавливаем темную палитру
     dark_palette = QPalette()
     dark_palette.setColor(QPalette.Window, QColor(53, 53, 53))
     dark_palette.setColor(QPalette.WindowText, QColor(255, 255, 255))
@@ -21,8 +21,8 @@ def apply_styles(app):
     dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
     dark_palette.setColor(QPalette.ButtonText, QColor(255, 255, 255))
     dark_palette.setColor(QPalette.BrightText, QColor(255, 0, 0))
-    dark_palette.setColor(QPalette.Highlight, QColor(142, 45, 197).lighter())
-    dark_palette.setColor(QPalette.HighlightedText, QColor(0, 0, 0))
+    dark_palette.setColor(QPalette.Highlight, QColor(106, 27, 154))
+    dark_palette.setColor(QPalette.HighlightedText, QColor(255, 255, 255))
 
     app.setPalette(dark_palette)
 
